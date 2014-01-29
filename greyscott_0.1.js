@@ -1,20 +1,28 @@
+//these vals are jammed in objecsts so they can be passed by refrence
 var Frate = {val:0.0254};
 var Krate = {val:0.0572};
 var Tstep = {val:3};
 var Scale = {val:1};
+//MUST be power of 2
 var sizeX = 512;
 var sizeY = 512;
+
 var Parent = document.body;
 var ParentWidth = Parent.clientWidth;
 var ParentHeight = Parent.clientHeight;
+
 var Canvas = document.createElement("canvas");
 Canvas.width = sizeX * 2;
 Canvas.height = sizeY;
 Parent.appendChild(Canvas);
+
 var gl = Canvas.getContext("experimental-webgl");
 gl.clearColor(0.2, 0.5, 0.5, 1);
 gl.clear(gl.COLOR_BUFFER_BIT);
+
+//NEED this for float32 textures. uint8 is too small number range
 var float_texture_ext = gl.getExtension("OES_texture_float");
+//get the shaders
 var vs = document.getElementById("vs").textContent;
 var fsSim = document.getElementById("fsSim").textContent;
 var fsCopy = document.getElementById("fsCopy").textContent;
@@ -23,20 +31,25 @@ var fsCompositSlow = document.getElementById("fsCompositSlow").textContent;
 var fsBichrome = document.getElementById("fsBichrome").textContent;
 var vsPoint = document.getElementById("vsPoint").textContent;
 var fsRed = document.getElementById("fsRed").textContent;
+
 var programMouse = createProgram(vsPoint, fsRed);
 gl.useProgram(programMouse);
 var MouseBuffer = gl.createBuffer();
+//create the programs
 var program = createProgram(vs, fsSim);
 var program_copy = createProgram(vs, fsCopy);
 var ProgramCompositFast = createProgram(vs, fsCompositFast);
 var ProgramComposit4C = createProgram(vs, fsCompositSlow);
 var ProgramComposit2C = createProgram(vs, fsBichrome);
+
 var Colors = new Float32Array([0.99, 0.68, 0.1, 0.23, 0.08, 0.45, 0.81, 0.33, 0.93, 0.16, 0.31, 0.66, 0.14, 0.64, 0.07, 0.9]);
 gl.useProgram(ProgramComposit4C);
 gl.uniform4fv(gl.getUniformLocation(ProgramComposit4C, "Colors"), Colors);
+
 var Colors2 = new Float32Array([0.99, 0.68, 0.1, 0, 0.08, 0.45, 0.81, 1]);
 gl.useProgram(ProgramCompositFast);
 gl.uniform4fv(gl.getUniformLocation(ProgramCompositFast, "Colors"), Colors2);
+
 var CurrentCompositor = ProgramCompositFast;
 gl.useProgram(program);
 program.samplerUniform = gl.getUniformLocation(program, "uSampler");
@@ -46,21 +59,29 @@ gl.uniform1f(gl.getUniformLocation(program, "TimeStep"), 0.99);
 gl.uniform1f(gl.getUniformLocation(program, "Frate"), 0.019);
 gl.uniform1f(gl.getUniformLocation(program, "Krate"), 0.048);
 gl.uniform1f(gl.getUniformLocation(program, "Scale"), 1);
+
 var posBuffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+
 var vertices = new Float32Array([-1, -1, 0, 1, -1, 0, -1, 1, 0, 1, 1, 0, 0, 0, 0, 0.1, 0, 0, 0, 0.1, 0, 0.1, 0.1, 0, -1, -1, 0, 1, -1, 0, -1, 1, 0, 1, 1, 0]);
+
 var aPosLoc = gl.getAttribLocation(program, "aPos");
 gl.enableVertexAttribArray(aPosLoc);
 gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 gl.vertexAttribPointer(aPosLoc, 3, gl.FLOAT, gl.FALSE, 0, 0);
+
 var aTexLoc = gl.getAttribLocation(program, "aVertexPosition");
 gl.enableVertexAttribArray(aTexLoc);
+
 var texCoords = new Float32Array([0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0.1, 0, 0, 0.1, 0.1, 0.1, -1, -1, 1, -1, -1, 0, 1, 0]);
+
 var texBuffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
 gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
 gl.vertexAttribPointer(aTexLoc, 2, gl.FLOAT, gl.FALSE, 0, 0);
+
 var rawData = new Float32Array(createNoise(sizeX, sizeY));
+
 var texture1 = gl.createTexture();
 gl.bindTexture(gl.TEXTURE_2D, texture1);
 gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
@@ -69,6 +90,7 @@ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+
 var texture2 = gl.createTexture();
 gl.bindTexture(gl.TEXTURE_2D, texture2);
 gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
@@ -77,13 +99,17 @@ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+
 var buffer1 = gl.createFramebuffer();
 gl.bindFramebuffer(gl.FRAMEBUFFER, buffer1);
 gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture1, 0);
+
 var buffer2 = gl.createFramebuffer();
 gl.bindFramebuffer(gl.FRAMEBUFFER, buffer2);
 gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture2, 0);
+
 gl.useProgram(program_copy);
+
 var CompTexture = gl.createTexture();
 gl.bindTexture(gl.TEXTURE_2D, CompTexture);
 gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
@@ -92,19 +118,27 @@ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+
 var CompositBuffer = gl.createFramebuffer();
 gl.bindFramebuffer(gl.FRAMEBUFFER, CompositBuffer);
 gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, CompTexture, 0);
+
 gl.viewport(0, 0, sizeX, sizeY);
+
 function Simulate() {
   gl.viewport(0, 0, sizeX, sizeY);
   gl.useProgram(program);
   gl.uniform1f(gl.getUniformLocation(program, "Frate"), Frate.val);
   gl.uniform1f(gl.getUniformLocation(program, "Krate"), Krate.val);
   gl.uniform1f(gl.getUniformLocation(program, "Scale"), Scale.val);
+
+  //the biggest possible time step is 1
+  //step the simulation multiple times for numbers > 1
   var TimeStepMult = Math.floor(Tstep.val);
   var Remainder = Math.abs(TimeStepMult - Tstep.val);
+  
   gl.uniform1f(gl.getUniformLocation(program, "TimeStep"), 1);
+
   for (var i = 0, length = TimeStepMult;i < length;i++) {
     Step();
   }
@@ -112,6 +146,7 @@ function Simulate() {
     gl.uniform1f(gl.getUniformLocation(program, "TimeStep"), Remainder);
     Step();
   }
+
   function Step() {
     gl.viewport(0, 0, sizeX, sizeY);
     gl.activeTexture(gl.TEXTURE0);
@@ -127,6 +162,7 @@ function Simulate() {
     gl.flush();
   }
 }
+
 function Composit() {
   gl.viewport(0, 0, sizeX, sizeY);
   gl.useProgram(CurrentCompositor);
@@ -136,6 +172,8 @@ function Composit() {
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   gl.flush();
 }
+//draws a sqaure in the simulation to disturb the patterns
+//should probly actually match it to the mouse x y position at some point
 function MousePos(Xoffset, Yoffset) {
   gl.viewport(0, 0, sizeX, sizeY);
   gl.useProgram(programMouse);
@@ -146,6 +184,7 @@ function MousePos(Xoffset, Yoffset) {
   gl.drawArrays(gl.TRIANGLE_STRIP, 4, 4);
   gl.flush();
 }
+
 function Tile() {
   gl.viewport(0, 0, Canvas.width, Canvas.height);
   gl.useProgram(program_copy);
@@ -155,6 +194,7 @@ function Tile() {
   gl.drawArrays(gl.TRIANGLE_STRIP, 8, 4);
   gl.flush();
 }
+
 function createShader(str, type) {
   var shader = gl.createShader(type);
   gl.shaderSource(shader, str);
@@ -164,6 +204,7 @@ function createShader(str, type) {
   }
   return shader;
 }
+
 function createProgram(vstr, fstr) {
   var program = gl.createProgram();
   var vshader = createShader(vstr, gl.VERTEX_SHADER);
@@ -176,6 +217,7 @@ function createProgram(vstr, fstr) {
   }
   return program;
 }
+
 function screenQuad() {
   var vertexPosBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexPosBuffer);
@@ -186,6 +228,7 @@ function screenQuad() {
   vertexPosBuffer.numItems = 4;
   return vertexPosBuffer;
 }
+
 function createNoise(width, height) {
   var theArray = [];
   for (var i = 0;i < width;i++) {
@@ -195,6 +238,7 @@ function createNoise(width, height) {
   }
   return theArray;
 }
+
 function ResetTexture(Target) {
   var NewData = new Float32Array(createNoise(sizeX, sizeY));
   gl.bindTexture(gl.TEXTURE_2D, Target);
@@ -205,10 +249,12 @@ function ResetTexture(Target) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 }
+
 function ResetSim() {
   ResetTexture(texture1);
   ResetTexture(texture2);
 }
+
 function ResetColors() {
   C1 = [Math.random(), Math.random(), Math.random()];
   C2 = [Math.random(), Math.random(), Math.random()];
@@ -227,6 +273,8 @@ function ResetColors() {
   sum3 = Math.abs(sum3 - sum5);
   sum4 = Math.abs(sum4 - sum5);
   sum5 = (sum1 + sum2 + sum3 + sum4) / 4;
+  //crude rule to ensure randomly generated colours have some contrast
+  //if average diffrence isnt great enough re generate colours
   if (sum5 > 0.25) {
     var NewColors = new Float32Array([C1[0], C1[1], C1[2], 0.2, C2[0], C2[1], C2[2], 0.4, C3[0], C3[1], C3[2], 0.7, C4[0], C4[1], C4[2], 1]);
     CurrentCompositor = ProgramComposit4C;
@@ -236,6 +284,7 @@ function ResetColors() {
     ResetColors();
   }
 }
+
 function TwoTone() {
   var C1 = [Math.random(), Math.random(), Math.random()];
   var C2 = ColorShift(C1[0], C1[1], C1[2], MathRandBowl() - 0.5, 0.2 * Math.random() - 0.1, 0.4 * MathRandBowl() - 0.2);
@@ -244,8 +293,7 @@ function TwoTone() {
   gl.useProgram(CurrentCompositor);
   gl.uniform4fv(gl.getUniformLocation(CurrentCompositor, "Colors"), NewColors);
 }
-function RandomColors(Size, MinDiff) {
-}
+
 function ColorShift(r, g, b, Hoffset, Soffset, Loffset) {
   var max = Math.max(r, g, b), min = Math.min(r, g, b);
   var h, s, l = (max + min) / 2;
@@ -319,17 +367,8 @@ function MathRandBowl() {
 
 
 
-GUI
-===
-
-
-
-
-
-
-
-
-
+GUI garbage
+===========
 */
 var GUI = function() {
   var Button = function(x, y, Height, Width, Label, Target) {
@@ -496,6 +535,8 @@ var GUI = function() {
     Buttons.push(new Slide(x, y, Height, Width, Label, Target, min, max));
   }};
 }();
+
+//initialize slides and buttons for gui
 GUI.init();
 GUI.AddSlider(20, 30, 16, 200, "Feed ", Frate, 0.002, 0.09);
 GUI.AddSlider(20, 80, 16, 200, "Kill ", Krate, 0.002, 0.09);
@@ -505,6 +546,10 @@ GUI.AddButton(20, 230, 16, 60, "    RESET", ResetSim);
 GUI.AddButton(90, 230, 16, 60, "   4COLOR", ResetColors);
 GUI.AddButton(90, 260, 16, 60, "    2TONE", TwoTone);
 GUI.Draw();
+
+
+//run the simulation and composite
+//24fps
 setInterval(function() {
   if (GUI.Mouse.DOWN) {
     MousePos(GUI.Mouse.X, GUI.Mouse.Y);
