@@ -306,6 +306,31 @@ function ColorShift(r, g, b, Hoffset, Soffset, Loffset) {
 function MathRandBowl() {
   return 0.5 + Math.sin(Math.random() * Math.PI * 2) * 0.5;
 }
+
+//cylce though some presets
+//========================
+var PresetCycle = {
+  Cursor:0,
+  Sets:[
+  [0.0134,0.04,1.0],//blobby waves
+  [0.0253,0.0548,1.0],//maze
+  [0.0412,0.064,0.7],//stripes and dots
+  [0.0473,0.06,1.0],//cells
+  [0.0733,0.0610,1.0],//slow coral
+  [0.0759,0.0601,1.0],//giant cells slow growing
+  [0.0794,0.0610,0.9]//slow growing stripes
+  ],
+Next:function(){
+  PresetCycle.Cursor++
+  PresetCycle.Cursor = PresetCycle.Cursor % PresetCycle.Sets.length;
+
+  Frate.val = PresetCycle.Sets[PresetCycle.Cursor][0];
+  Krate.val = PresetCycle.Sets[PresetCycle.Cursor][1];
+  Scale.val = PresetCycle.Sets[PresetCycle.Cursor][2];
+
+  }
+}
+
 /*
 
 
@@ -504,6 +529,7 @@ GUI.AddSlider(20, 180, 16, 200, "Scale ", Scale, 0.1, 1);
 GUI.AddButton(20, 230, 16, 60, "    RESET", ResetSim);
 GUI.AddButton(90, 230, 16, 60, "   4COLOR", ResetColors);
 GUI.AddButton(90, 260, 16, 60, "    2TONE", TwoTone);
+GUI.AddButton(20, 260, 16, 60, "    preSET",  PresetCycle.Next );
 GUI.Draw();
 setInterval(function() {
   if (GUI.Mouse.DOWN) {
