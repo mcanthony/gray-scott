@@ -180,12 +180,22 @@ void main() {
 
 
 <style type="text/css">
+		html body > * {
+		  -webkit-touch-callout: none;
+		  -webkit-user-select: none;
+		  -khtml-user-select: none;
+		  -moz-user-select: none;
+		  -ms-user-select: none;
+		  user-select: none;
+		}
 body,html{padding: 0;margin: 0;width: 100%;height: 100%;font-family: arial , sans-serif; line-height: normal;background-color: #000}
 canvas{width:100%;height:auto;position: absolute;}
-#msg{color:#fff;z-index:999;text-align:center;position:absolute;font-size:20px;bottom:0;}
+#msg{color:#fff;z-index:999;text-align:center;position:absolute;font-size:20px;bottom:0;width:100%;}
 </style>
 </head>
 <body>
   <script type="text/javascript" src="./greyscott_0.1.js"></script>
-  <p id="msg">click and drag to disturb pattern</p>
+  <p id="msg">click and drag to disturb pattern<br>
+   see code at <a href="https://github.com/ktfh/grey-scott/">github.com/ktfh/grey-scott/</a>
+  </p>
 </body></html>
