@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<script id="vsPoint" type="text/plain">
+attribute vec2 a_position;
+uniform vec2 OffsetXY;
+void main() {
+  gl_Position = vec4( a_position + OffsetXY , 0, 1);
+}
+</script>
+<script id="fsRed" type="text/plain">
+precision mediump float;
+void main() {
+  gl_FragColor = vec4(0.8,0.2,0,0.1);  // red
+}
+</script>
+
+<script id="vs" type="text/plain">
+precision mediump float;
+attribute vec3 aPos;
+attribute vec2 aVertexPosition;
+varying vec2 vTexCoord;
+
+void main(void) {
+ gl_Position = vec4( aPos , 1);
+  vTexCoord = aVertexPosition; 
+
+}
+
+</script>
+<script id="fsCopy" type="text/plain">
+precision lowp float;
+uniform sampler2D uSampler;
+varying vec2 vTexCoord;
+void main(void) {
+     gl_FragColor = texture2D(uSampler, vTexCoord);
+}
+</script>
+
+<script id="fsCompositFast" type="text/plain">
+precision lowp float;
+uniform sampler2D uSampler;
+varying vec2 vTexCoord;
+
+uniform vec4 Colors[2];
+
+void main(void) {
+  float u = texture2D(uSampler, vTexCoord).r;
+
+     
+      if(  abs(Colors[0].a - u) < 0.5 ){
+        gl_FragColor =  Colors[0];
+      }else{
+        gl_FragColor =  Colors[1];
+      }
+      gl_FragColor.a = 1.0;
+}
+</script>
+<script id="fsCompositSlow" type="text/plain">
+precision lowp float;
+uniform sampler2D uSampler;
+varying vec2 vTexCoord;
+
+uniform vec4 Colors[4];
+
+void main(void) {
+  float u = texture2D(uSampler, vTexCoord).r;
+ // float v = texture2D(uSampler, vTexCoord).g;
+
+vec4 Color1;
+vec4 Color2;
+float lastDiff = 0.36;
+
+ // int c1 = 0;
+     for( int i = 0; i < 4; i++){
+      
+      if(  abs(u - Colors[i].a) < abs(lastDiff) ){
+        lastDiff = u - Colors[i].a ;
+        Color1 =  Colors[i];
+
+          if( lastDiff > 0.0 ){//if closest value below X the dif would be positive
+          if(i < 3 ){//if a higher indicies exists
+          Color2 = Colors[i+1]; //var C2 = C1 + 4;
+          }else{
+           Color2 =  Color1; //make them both same color other wise
+          }
+        }else if( lastDiff < 0.0 ){//closest value is greater than X
+            if( i >= 1 ){//if a smaller indicies exists
+            Color2 = Colors[i-1];
+          }else{
+            Color2 = Color1;//make them both same color other wise
+          }
+        }else{// dif is a match
+         Color2 = Color1;
+        }
+
+      }
+     }
+float sumDiff = abs(lastDiff) + abs(Color2.a - u);
+float mixP1 = 1.0 - abs(lastDiff ) / sumDiff ;
+float mixP2 = 1.0 - abs(Color2.a - u) / sumDiff;
+
+ gl_FragColor.r = Color1.r * mixP1 + Color2.r * mixP2;
+ gl_FragColor.g = Color1.g * mixP1 + Color2.g * mixP2;
+ gl_FragColor.b = Color1.b * mixP1 + Color2.b * mixP2;
+
+ gl_FragColor.a = 1.0;
+}
+</script>
+
+<script id="fsBichrome" type="text/plain">
+precision lowp float;
+uniform sampler2D uSampler;
+varying vec2 vTexCoord;
+
+uniform vec4 Colors[2];
+
+void main(void) {
+
+  float u = texture2D(uSampler, vTexCoord).r;
+ // float v = texture2D(uSampler, vTexCoord).g;
+vec4 Color2 = Colors[0];
+vec4 Color1 = Colors[1];
+
+//float sumDiff = (Color1.a - u) + (Color2.a - u);
+float mixP1 = 1.0 - u ; 
+float mixP2 =  u ;
+
+ gl_FragColor.r = Color1.r * mixP1 + Color2.r * mixP2 ;
+ gl_FragColor.g = Color1.g * mixP1 + Color2.g * mixP2 ;
+ gl_FragColor.b = Color1.b * mixP1 + Color2.b * mixP2 ;
+
+ gl_FragColor.a = 1.0;
+}
+</script>
+
+
+
+
+<script id="fsSim" type="text/plain">
+
+precision mediump float;
+varying vec2 vTexCoord;
+
+uniform sampler2D uSampler;
+uniform vec2 p;
+
+uniform float TimeStep;
+uniform float Frate;
+uniform float Krate;
+uniform float Scale;
+void main() { 
+  
+  vec4 blur = texture2D(uSampler, vTexCoord +  vec2(-p.x, -p.y)) * 0.05 +
+     texture2D(uSampler, vTexCoord + vec2( 0, -p.y)) * 0.20 +
+     texture2D(uSampler, vTexCoord + vec2( p.x, -p.y)) * 0.05 +
+     texture2D(uSampler, vTexCoord + vec2(-p.x,  0)) * 0.20  +
+     texture2D(uSampler, vTexCoord + vec2( 0,  0)) *  -1.0 +
+     texture2D(uSampler, vTexCoord + vec2( p.x,  0)) * 0.20  +
+     texture2D(uSampler, vTexCoord + vec2(-p.x,  p.y)) * 0.05 +
+     texture2D(uSampler, vTexCoord + vec2( 0,  p.y)) * 0.20  +
+     texture2D(uSampler, vTexCoord + vec2( p.x, p.y)) * 0.05 ;
+
+  float u = texture2D( uSampler, vTexCoord).r;
+  float v = texture2D( uSampler, vTexCoord).g;
+
+  float Reaction = u * v * v;
+
+  //gl_FragColor = texture2D( uSampler, vTexCoord);
+  gl_FragColor.b = 0.3;
+  gl_FragColor.a = 1.0;
+  gl_FragColor.r = u + (Scale * 1.0 * blur.r - Reaction + Frate * ( 1.0 - u ) ) * TimeStep ;
+  gl_FragColor.g = v + (Scale * 0.5 * blur.g + Reaction - ( Krate + Frate ) * v ) * TimeStep ;
+
+}
+
+
+
+</script>
+
+
+<style type="text/css">
+body,html{padding: 0;margin: 0;width: 100%;height: 100%;font-family: arial , sans-serif; line-height: normal;background-color: #000}
+canvas{width:100%;height:auto;position: absolute;}
+</style>
+</head>
+<body>
+  <script type="text/javascript" src="./greyscott_0.1.js"></script>
+</body></html>
