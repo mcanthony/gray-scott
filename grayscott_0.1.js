@@ -32,10 +32,11 @@ var fsBichrome = document.getElementById("fsBichrome").textContent;
 var vsPoint = document.getElementById("vsPoint").textContent;
 var fsRed = document.getElementById("fsRed").textContent;
 
+//create the programs from vertex shader and fragment shader
 var programMouse = createProgram(vsPoint, fsRed);
 gl.useProgram(programMouse);
 var MouseBuffer = gl.createBuffer();
-//create the programs
+
 var program = createProgram(vs, fsSim);
 var program_copy = createProgram(vs, fsCopy);
 var ProgramCompositFast = createProgram(vs, fsCompositFast);
