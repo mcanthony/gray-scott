@@ -22,9 +22,8 @@ attribute vec2 aVertexPosition;
 varying vec2 vTexCoord;
 
 void main(void) {
- gl_Position = vec4( aPos , 1);
+  gl_Position = vec4( aPos , 1);
   vTexCoord = aVertexPosition; 
-
 }
 
 </script>
@@ -188,14 +187,14 @@ void main() {
 		  -ms-user-select: none;
 		  user-select: none;
 		}
-body,html{padding: 0;margin: 0;width: 100%;height: 100%;font-family: arial , sans-serif; line-height: normal;background-color: #000}
+body,html{padding: 0;margin: 0;width: 100%;height: 100%;font-family: arial , sans-serif; line-height: normal;background-color: #000;overflow: hidden;}
 canvas{width:100%;height:auto;position: absolute;}
 #msg{color:#fff;z-index:999;text-align:center;position:absolute;font-size:20px;bottom:0;width:100%;}
 </style>
 </head>
 <body>
-  <script type="text/javascript" src="./greyscott_0.1.js"></script>
+  <script type="text/javascript" src="./grayscott.js"></script>
   <p id="msg">click and drag to disturb pattern<br>
-   see code at <a href="https://github.com/ktfh/grey-scott/">github.com/ktfh/grey-scott/</a>
+   see code at <a href="https://github.com/ktfh/gray-scott/">github.com/ktfh/gray-scott/</a>
   </p>
 </body></html>

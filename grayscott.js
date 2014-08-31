@@ -1,7 +1,22 @@
-var Frate = {val:0.0254};
-var Krate = {val:0.0572};
-var Tstep = {val:3};
-var Scale = {val:1};
+var Frate = {
+  val: 0.0254
+};
+var Krate = {
+  val: 0.0572
+};
+var Tstep = {
+  val: 3
+};
+var Scale = {
+  val: 1
+};
+
+var Uskate = {
+  val: 0.5
+};
+var Turbulent = {
+  val: 0.5
+}
 var sizeX = 512;
 var sizeY = 512;
 var Parent = document.body;
@@ -37,7 +52,7 @@ gl.uniform4fv(gl.getUniformLocation(ProgramComposit4C, "Colors"), Colors);
 var Colors2 = new Float32Array([0.99, 0.68, 0.1, 0, 0.08, 0.45, 0.81, 1]);
 gl.useProgram(ProgramCompositFast);
 gl.uniform4fv(gl.getUniformLocation(ProgramCompositFast, "Colors"), Colors2);
-var CurrentCompositor = ProgramCompositFast;
+var CurrentCompositor = ProgramComposit4C; //ProgramCompositFast;
 gl.useProgram(program);
 program.samplerUniform = gl.getUniformLocation(program, "uSampler");
 gl.uniform1i(program.samplerUniform, 0);
@@ -96,6 +111,20 @@ var CompositBuffer = gl.createFramebuffer();
 gl.bindFramebuffer(gl.FRAMEBUFFER, CompositBuffer);
 gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, CompTexture, 0);
 gl.viewport(0, 0, sizeX, sizeY);
+
+function resize() {
+  ParentWidth = Parent.clientWidth;
+  ParentHeight = Parent.clientHeight;
+  Canvas.width = ParentWidth;
+  Canvas.height = ParentHeight;
+  var tx = ParentWidth / sizeX;
+  var ty = ParentHeight / sizeY;
+  gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
+  gl.bufferSubData(gl.ARRAY_BUFFER, 16 * 4, new Float32Array([0, 0, tx, 0, 0, ty, tx, ty]))
+}
+resize();
+window.addEventListener('resize', resize, false);
+
 function Simulate() {
   gl.viewport(0, 0, sizeX, sizeY);
   gl.useProgram(program);
@@ -105,13 +134,14 @@ function Simulate() {
   var TimeStepMult = Math.floor(Tstep.val);
   var Remainder = Math.abs(TimeStepMult - Tstep.val);
   gl.uniform1f(gl.getUniformLocation(program, "TimeStep"), 1);
-  for (var i = 0, length = TimeStepMult;i < length;i++) {
+  for (var i = 0, length = TimeStepMult; i < length; i++) {
     Step();
   }
   if (Remainder > 0.1) {
     gl.uniform1f(gl.getUniformLocation(program, "TimeStep"), Remainder);
     Step();
   }
+
   function Step() {
     gl.viewport(0, 0, sizeX, sizeY);
     gl.activeTexture(gl.TEXTURE0);
@@ -127,6 +157,7 @@ function Simulate() {
     gl.flush();
   }
 }
+
 function Composit() {
   gl.viewport(0, 0, sizeX, sizeY);
   gl.useProgram(CurrentCompositor);
@@ -136,6 +167,7 @@ function Composit() {
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   gl.flush();
 }
+
 function MousePos(Xoffset, Yoffset) {
   gl.viewport(0, 0, sizeX, sizeY);
   gl.useProgram(programMouse);
@@ -146,15 +178,23 @@ function MousePos(Xoffset, Yoffset) {
   gl.drawArrays(gl.TRIANGLE_STRIP, 4, 4);
   gl.flush();
 }
+
 function Tile() {
+
+  tx = ParentWidth / sizeX;
+  ty = ParentHeight / sizeY;
+
   gl.viewport(0, 0, Canvas.width, Canvas.height);
   gl.useProgram(program_copy);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.bindTexture(gl.TEXTURE_2D, CompTexture);
+
   gl.activeTexture(gl.TEXTURE0);
   gl.drawArrays(gl.TRIANGLE_STRIP, 8, 4);
+
   gl.flush();
 }
+
 function createShader(str, type) {
   var shader = gl.createShader(type);
   gl.shaderSource(shader, str);
@@ -164,6 +204,7 @@ function createShader(str, type) {
   }
   return shader;
 }
+
 function createProgram(vstr, fstr) {
   var program = gl.createProgram();
   var vshader = createShader(vstr, gl.VERTEX_SHADER);
@@ -176,25 +217,17 @@ function createProgram(vstr, fstr) {
   }
   return program;
 }
-function screenQuad() {
-  var vertexPosBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, vertexPosBuffer);
-  var vertices = [-1, -1, 1, -1, -1, 1, 1, 1];
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-  gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(vertices));
-  vertexPosBuffer.itemSize = 2;
-  vertexPosBuffer.numItems = 4;
-  return vertexPosBuffer;
-}
+
 function createNoise(width, height) {
   var theArray = [];
-  for (var i = 0;i < width;i++) {
-    for (var j = 0;j < height;j++) {
+  for (var i = 0; i < width; i++) {
+    for (var j = 0; j < height; j++) {
       theArray.push(0.9, Math.random() * Math.random() * Math.random() * Math.random() * 1, 1, 1);
     }
   }
   return theArray;
 }
+
 function ResetTexture(Target) {
   var NewData = new Float32Array(createNoise(sizeX, sizeY));
   gl.bindTexture(gl.TEXTURE_2D, Target);
@@ -205,10 +238,12 @@ function ResetTexture(Target) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 }
+
 function ResetSim() {
   ResetTexture(texture1);
   ResetTexture(texture2);
 }
+
 function ResetColors() {
   C1 = [Math.random(), Math.random(), Math.random()];
   C2 = [Math.random(), Math.random(), Math.random()];
@@ -232,10 +267,12 @@ function ResetColors() {
     CurrentCompositor = ProgramComposit4C;
     gl.useProgram(CurrentCompositor);
     gl.uniform4fv(gl.getUniformLocation(CurrentCompositor, "Colors"), NewColors);
+    console.log(NewColors);
   } else {
     ResetColors();
   }
 }
+
 function TwoTone() {
   var C1 = [Math.random(), Math.random(), Math.random()];
   var C2 = ColorShift(C1[0], C1[1], C1[2], MathRandBowl() - 0.5, 0.2 * Math.random() - 0.1, 0.4 * MathRandBowl() - 0.2);
@@ -244,10 +281,12 @@ function TwoTone() {
   gl.useProgram(CurrentCompositor);
   gl.uniform4fv(gl.getUniformLocation(CurrentCompositor, "Colors"), NewColors);
 }
-function RandomColors(Size, MinDiff) {
-}
+
+function RandomColors(Size, MinDiff) {}
+
 function ColorShift(r, g, b, Hoffset, Soffset, Loffset) {
-  var max = Math.max(r, g, b), min = Math.min(r, g, b);
+  var max = Math.max(r, g, b),
+    min = Math.min(r, g, b);
   var h, s, l = (max + min) / 2;
   if (max == min) {
     h = 0;
@@ -255,7 +294,7 @@ function ColorShift(r, g, b, Hoffset, Soffset, Loffset) {
   } else {
     var d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch(max) {
+    switch (max) {
       case r:
         h = (g - b) / d + (g < b ? 6 : 0);
         break;
@@ -301,8 +340,9 @@ function ColorShift(r, g, b, Hoffset, Soffset, Loffset) {
     g = hue2rgb(p, q, h);
     b = hue2rgb(p, q, h - 1 / 3);
   }
-  return[r, g, b];
+  return [r, g, b];
 }
+
 function MathRandBowl() {
   return 0.5 + Math.sin(Math.random() * Math.PI * 2) * 0.5;
 }
@@ -310,24 +350,24 @@ function MathRandBowl() {
 //cylce though some presets
 //========================
 var PresetCycle = {
-  Cursor:0,
-  Sets:[
-  [0.0134,0.04,1.0],//blobby waves
-  [0.0253,0.0548,1.0],//maze
-  [0.0412,0.064,0.7],//stripes and dots
-  [0.0473,0.06,1.0],//cells
-  [0.0733,0.0610,1.0],//slow coral
-  [0.0759,0.0601,1.0],//giant cells slow growing
-  [0.0794,0.0610,0.9]//slow growing stripes
+  Cursor: 0,
+  Sets: [
+    [0.0134, 0.04, 1.0], //blobby waves
+    [0.0253, 0.0548, 1.0], //maze
+    [0.0412, 0.064, 0.7], //stripes and dots
+    [0.0473, 0.06, 1.0], //cells
+    [0.0733, 0.0610, 1.0], //slow coral
+    [0.0759, 0.0601, 1.0], //giant cells slow growing
+    [0.0794, 0.0610, 0.9] //slow growing stripes
   ],
-Next:function(){
-  PresetCycle.Cursor++
-  PresetCycle.Cursor = PresetCycle.Cursor % PresetCycle.Sets.length;
+  Next: function() {
+    PresetCycle.Cursor++
+    PresetCycle.Cursor = PresetCycle.Cursor % PresetCycle.Sets.length;
 
-  Frate.val = PresetCycle.Sets[PresetCycle.Cursor][0];
-  Krate.val = PresetCycle.Sets[PresetCycle.Cursor][1];
-  Scale.val = PresetCycle.Sets[PresetCycle.Cursor][2];
-
+    Frate.val = PresetCycle.Sets[PresetCycle.Cursor][0];
+    Krate.val = PresetCycle.Sets[PresetCycle.Cursor][1];
+    Scale.val = PresetCycle.Sets[PresetCycle.Cursor][2];
+    ResetSim();
   }
 }
 
@@ -370,26 +410,30 @@ var GUI = function() {
     this.Ready = true;
     this.redraw = false;
   };
-  Button.prototype = {CheckClick:function(x, y) {
-    if (x > this.x && (x < this.x + this.Width && (y > this.y && y < this.y + this.Height + this.HandleHeight))) {
-      return true;
-    } else {
-      return false;
-    }
-  }, Update:function(x, y) {
-    if (this.Ready) {
-      this.Ready = false;
-      if (this.Target) {
-        this.Target();
+  Button.prototype = {
+    CheckClick: function(x, y) {
+      if (x > this.x && (x < this.x + this.Width && (y > this.y && y < this.y + this.Height + this.HandleHeight))) {
+        return true;
+      } else {
+        return false;
       }
-      var that = this;
-      setTimeout(function() {
-        that.Ready = true;
-      }, 500);
+    },
+    Update: function(x, y) {
+      if (this.Ready) {
+        this.Ready = false;
+        if (this.Target) {
+          this.Target();
+        }
+        var that = this;
+        setTimeout(function() {
+          that.Ready = true;
+        }, 500);
+      }
+    },
+    GetValue: function() {
+      return this.Label;
     }
-  }, GetValue:function() {
-    return this.Label;
-  }};
+  };
   var Slide = function(x, y, Height, Width, Label, Target, min, max) {
     Button.call(this, x, y, Height, Width, Label, Target);
     this.min = min;
@@ -428,98 +472,114 @@ var GUI = function() {
   var _x = 0;
   var _y = 0;
   UpScale = 1;
-  return{Mouse:function() {
-    var MovementListeners = [];
-    return{X:0, Y:0, DOWN:false, Move:function(event) {
-      var Xpos = Math.min(event.clientX, GUI_ParentWidth) / UpScale;
-      var Ypos = Math.min(event.clientY, GUI_ParentHeight) / UpScale;
-      this.X = Xpos / GUI_ParentWidth;
-      this.Y = Ypos / GUI_ParentHeight;
-      for (var i = 0;i < MovementListeners.length;i++) {
-        MovementListeners[i].Update(Xpos, Ypos);
-        Redraw = true;
-      }
-    }, Click:function(event) {
-      var Xpos = event.clientX / UpScale;
-      var Ypos = event.clientY / UpScale;
-      for (var i = 0;i < Buttons.length;i++) {
-        if (Buttons[i].CheckClick(Xpos, Ypos)) {
-          Redraw = true;
-          Buttons[i].Update(Xpos, Ypos);
+  return {
+    Mouse: function() {
+      var MovementListeners = [];
+      return {
+        X: 0,
+        Y: 0,
+        DOWN: false,
+        Move: function(event) {
+          var Xpos = Math.min(event.clientX, GUI_ParentWidth) / UpScale;
+          var Ypos = Math.min(event.clientY, GUI_ParentHeight) / UpScale;
+          this.X = Xpos / GUI_ParentWidth;
+          this.Y = Ypos / GUI_ParentHeight;
+          for (var i = 0; i < MovementListeners.length; i++) {
+            MovementListeners[i].Update(Xpos, Ypos);
+            Redraw = true;
+          }
+        },
+        Click: function(event) {
+          var Xpos = event.clientX / UpScale;
+          var Ypos = event.clientY / UpScale;
+          for (var i = 0; i < Buttons.length; i++) {
+            if (Buttons[i].CheckClick(Xpos, Ypos)) {
+              Redraw = true;
+              Buttons[i].Update(Xpos, Ypos);
+            }
+          }
+        },
+        Up: function() {
+          MovementListeners = [];
+          Redraw = false;
+          this.DOWN = false;
+          setTimeout(function() {
+            Clickable = true;
+          }, 1);
+        },
+        Down: function(event) {
+          var Xpos = event.clientX / UpScale;
+          var Ypos = event.clientY / UpScale;
+          for (var i = 0; i < Buttons.length; i++) {
+            if (Buttons[i].CheckClick(Xpos, Ypos)) {
+              Redraw = true;
+              Clickable = false;
+              Buttons[i].Update(Xpos, Ypos);
+              MovementListeners.push(Buttons[i]);
+            }
+          }
+          if (Clickable) {
+            this.DOWN = true;
+          }
+        },
+        GetMousePosition: function() {
+          return [_x, _y];
         }
-      }
-    }, Up:function() {
-      MovementListeners = [];
-      Redraw = false;
-      this.DOWN = false;
-      setTimeout(function() {
-        Clickable = true;
-      }, 1);
-    }, Down:function(event) {
-      var Xpos = event.clientX / UpScale;
-      var Ypos = event.clientY / UpScale;
-      for (var i = 0;i < Buttons.length;i++) {
-        if (Buttons[i].CheckClick(Xpos, Ypos)) {
-          Redraw = true;
-          Clickable = false;
-          Buttons[i].Update(Xpos, Ypos);
-          MovementListeners.push(Buttons[i]);
+      };
+    }(),
+    init: function() {
+      this.Scale();
+      var that = this;
+      window.onresize = function() {
+        that.Scale();
+      };
+      GUI_Parent.onmousemove = function(event) {
+        that.Mouse.Move(event);
+      };
+      GUI_Parent.onclick = function(event) {
+        that.Mouse.Click(event);
+      };
+      GUI_Parent.onmousedown = function(event) {
+        that.Mouse.Down(event);
+      };
+      GUI_Parent.onmouseup = function() {
+        that.Mouse.Up();
+      };
+      GUI_Parent.onmouseout = function() {
+        that.Mouse.Up();
+      };
+      setInterval(function() {
+        if (Redraw) {
+          Redraw = false;
+          that.Draw();
         }
+      }, 42);
+    },
+    Draw: function() {
+      ctx.clearRect(0, 0, GUI_ParentWidth, GUI_ParentHeight);
+      for (i = 0; i < Buttons.length; i++) {
+        ctx.strokeRect(Buttons[i].x, Buttons[i].y, Buttons[i].Width, Buttons[i].Height);
+        ctx.fillRect(Buttons[i].x + Buttons[i].Current * (Buttons[i].Width - Buttons[i].HandleHeight), Buttons[i].y, Buttons[i].HandleHeight, Buttons[i].HandleHeight);
+        ctx.fillText(Buttons[i].GetValue(), Buttons[i].x, Buttons[i].y + Buttons[i].LabelOffsetY);
       }
-      if (Clickable) {
-        this.DOWN = true;
-      }
-    }, GetMousePosition:function() {
-      return[_x, _y];
-    }};
-  }(), init:function() {
-    this.Scale();
-    var that = this;
-    window.onresize = function() {
-      that.Scale();
-    };
-    GUI_Parent.onmousemove = function(event) {
-      that.Mouse.Move(event);
-    };
-    GUI_Parent.onclick = function(event) {
-      that.Mouse.Click(event);
-    };
-    GUI_Parent.onmousedown = function(event) {
-      that.Mouse.Down(event);
-    };
-    GUI_Parent.onmouseup = function() {
-      that.Mouse.Up();
-    };
-    GUI_Parent.onmouseout = function() {
-      that.Mouse.Up();
-    };
-    setInterval(function() {
-      if (Redraw) {
-        Redraw = false;
-        that.Draw();
-      }
-    }, 42);
-  }, Draw:function() {
-    ctx.clearRect(0, 0, GUI_ParentWidth, GUI_ParentHeight);
-    for (i = 0;i < Buttons.length;i++) {
-      ctx.strokeRect(Buttons[i].x, Buttons[i].y, Buttons[i].Width, Buttons[i].Height);
-      ctx.fillRect(Buttons[i].x + Buttons[i].Current * (Buttons[i].Width - Buttons[i].HandleHeight), Buttons[i].y, Buttons[i].HandleHeight, Buttons[i].HandleHeight);
-      ctx.fillText(Buttons[i].GetValue(), Buttons[i].x, Buttons[i].y + Buttons[i].LabelOffsetY);
+    },
+    Scale: function() {
+      GUI_ParentWidth = GUI_Parent.clientWidth;
+      GUI_ParentHeight = GUI_Parent.clientHeight;
+      ctx.canvas.width = GUI_ParentWidth;
+      ctx.canvas.height = GUI_ParentHeight;
+      ctx.fillStyle = "#fff";
+      ctx.strokeStyle = "#fff";
+      GUI.Draw();
+    },
+    SaveImg: function(size) {},
+    AddButton: function(x, y, Height, Width, Label, Target) {
+      Buttons.push(new Button(x, y, Height, Width, Label, Target));
+    },
+    AddSlider: function(x, y, Height, Width, Label, Target, min, max) {
+      Buttons.push(new Slide(x, y, Height, Width, Label, Target, min, max));
     }
-  }, Scale:function() {
-    GUI_ParentWidth = GUI_Parent.clientWidth;
-    GUI_ParentHeight = GUI_Parent.clientHeight;
-    ctx.canvas.width = GUI_ParentWidth;
-    ctx.canvas.height = GUI_ParentHeight;
-    ctx.fillStyle = "#fff";
-    ctx.strokeStyle = "#fff";
-    GUI.Draw();
-  }, SaveImg:function(size) {
-  }, AddButton:function(x, y, Height, Width, Label, Target) {
-    Buttons.push(new Button(x, y, Height, Width, Label, Target));
-  }, AddSlider:function(x, y, Height, Width, Label, Target, min, max) {
-    Buttons.push(new Slide(x, y, Height, Width, Label, Target, min, max));
-  }};
+  };
 }();
 GUI.init();
 GUI.AddSlider(20, 30, 16, 200, "Feed ", Frate, 0.002, 0.09);
@@ -529,14 +589,77 @@ GUI.AddSlider(20, 180, 16, 200, "Scale ", Scale, 0.1, 1);
 GUI.AddButton(20, 230, 16, 60, "    RESET", ResetSim);
 GUI.AddButton(90, 230, 16, 60, "   4COLOR", ResetColors);
 GUI.AddButton(90, 260, 16, 60, "    2TONE", TwoTone);
-GUI.AddButton(20, 260, 16, 60, "    preSET",  PresetCycle.Next );
+GUI.AddButton(20, 260, 16, 60, "    preSET", PresetCycle.Next);
+GUI.AddSlider(20, 300, 16, 200, "Uskate", Uskate, 0.0, 1.0);
+GUI.AddSlider(20, 340, 16, 200, "Turbulent", Turbulent, 0.0, 1.0);
 GUI.Draw();
-setInterval(function() {
+
+function BindPropToFunction(targetObject, propName, setFunc) {
+  //private copy of value
+  var pVal = 0;
+  Object.defineProperty(targetObject, propName, {
+    set: function(v) {
+      pVal = v;
+      setFunc(v);
+    },
+    get: function() {
+      return pVal;
+    }
+  });
+}
+
+function blend(t, p0, p1) {
+  return (1 - t) * p0 + t * p1;
+}
+
+function bezier(t, p0, p1, p2, p3) {
+  return Math.pow(1 - t, 3) * p0 + (t * t * t) * p3 + 3 * (t * t) * (1 - t) * p2 + 3 * Math.pow(1 - t, 2) * t * p1;
+}
+
+function quadratic(t, p0, p1, p2) {
+  return Math.pow(1 - t, 2) * p0 + 2 * (1 - t) * t * p1 + (t * t) * p2;
+}
+
+function exploreUskate(t) {
+  Krate.val = bezier(t, 0.05273333333333333, 0.06326666666666667, 0.06946666666666668, 0.063);
+  Frate.val = bezier(t, 0.04373333333333333, 0.040933333333333335, 0.055466666666666664, 0.07893333333333333)
+}
+BindPropToFunction(Uskate, "val", exploreUskate)
+
+function exploreTurbulent(t) {
+  //arbitrary path through turbulence causing values
+  if (t > 0.5) {
+    t = (t - 0.5) * 2;
+    Krate.val = bezier(t, 0.0468, 0.0530, 0.0530, 0.0468);
+    Frate.val = bezier(t, 0.0110, 0.0146, 0.0183, 0.0210);
+  } else {
+    t *= 2;
+    Krate.val = bezier(t, 0.0468, 0.0415, 0.0395, 0.0468);
+    Frate.val = bezier(t, 0.0210, 0.0150, 0.0106, 0.0120);
+  }
+}
+BindPropToFunction(Turbulent, "val", exploreTurbulent)
+
+
+window.requestAnimFrame = (function() {
+  return window.requestAnimationFrame ||
+    window.webkitRequestAnimationFrame ||
+    window.mozRequestAnimationFrame ||
+    window.oRequestAnimationFrame ||
+    window.msRequestAnimationFrame ||
+    function(callback) {
+      window.setTimeout(callback, 1000 / 60);
+    };
+})();
+
+requestAnimFrame(go);
+
+function go() {
   if (GUI.Mouse.DOWN) {
     MousePos(GUI.Mouse.X, GUI.Mouse.Y);
   }
   Simulate();
   Composit();
   Tile();
-}, 42);
-
+  requestAnimFrame(go)
+};
